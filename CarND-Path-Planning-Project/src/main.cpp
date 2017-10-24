@@ -20,6 +20,9 @@
 //number of points to calc -- 3 seconds planning
 #define number_of_points 15
 
+//max speed in m/s
+#define max_speed 22.0
+
 using namespace std;
 
 // for convenience
@@ -168,9 +171,9 @@ int main() {
           double car_s = j[1]["s"];
           double car_d = j[1]["d"];
           double car_yaw = j[1]["yaw"];
-          double car_speed = j[1]["speed"];
+          double car_speed = mph_to_ms(j[1]["speed"]);
             
-          double car_speed_ms = mph_to_ms(car_speed);
+          //double car_speed_ms = mph_to_ms(car_speed);
 
           // Previous path data given to the Planner
           auto previous_path_x = j[1]["previous_path_x"];
@@ -183,6 +186,62 @@ int main() {
           auto sensor_fusion = j[1]["sensor_fusion"];
             
             int cnt_cars=sensor_fusion.size();
+            json msgJson;
+            
+            vector<double> next_x_vals;
+            vector<double> next_y_vals;
+            
+            int prev_size = previous_path_x.size();
+            
+            double prev_car_x, prev_car_y;
+            
+            vector<double> ptsx;
+            vector<double> ptsy;
+            
+            double ref_x = car_x;
+            double ref_y = car_y;
+            double ref_yaw = deg2rad(car_yaw);
+            
+            if (prev_size < 2)
+            {
+                prev_car_x = car_x - cos(car_yaw);
+                //if (cos(car_yaw) == 0) prev_car_x -= 0.1;
+                prev_car_y = car_y - sin(car_yaw);
+                
+                
+            }
+            else
+            {
+                
+                ref_x = previous_path_x[prev_size - 1];
+                ref_y = previous_path_y[prev_size - 1];
+                
+                prev_car_x = previous_path_x[prev_size - 2];
+                prev_car_y = previous_path_y[prev_size - 2];
+                ref_yaw = atan2(ref_y - prev_car_y, ref_x - prev_car_x);
+                
+                //actual car speed
+                car_speed = distance(ref_x,ref_y,prev_car_x,prev_car_y)/0.02;
+                
+                //if (prev_car_x == car_x) prev_car_x -= 0.1;
+            }
+            
+            ptsx.push_back(prev_car_x);
+            ptsx.push_back(ref_x);
+            
+            ptsy.push_back(prev_car_y);
+            ptsy.push_back(ref_y);
+            
+            vector<double>   last_coords=getFrenet(ref_x,
+                                                   ref_y,
+                                                   ref_yaw, map_waypoints_x, map_waypoints_y
+                                                   );
+            
+            
+            //set car coordinates to last s and d
+            car_s = last_coords[0];
+            car_d = last_coords[1];
+            
             
             //dist to the next car
             double max_dist=9999;
@@ -202,13 +261,14 @@ int main() {
                 double vx=sensor_fusion[i][3];
                 double vy=sensor_fusion[i][4];
                 
+                //dirty approximation of car position in future
+                next_s+=next_speed*0.02*prev_size;
                 
-                //determine next car_lane
-                int next_car_lane =round((next_d-2) /4);
-                                         
                 double dist=(next_s-car_s);
                 if (dist<0) dist+=max_s;
                 
+                
+                //distance from the back
                 double back_dist = dist-max_s;
                                          
                 
@@ -230,62 +290,20 @@ int main() {
             }
             
             
-            double max_speed=get_max_speed_for_line(max_dist, next_speed, car_speed_ms);
-            cout << "dist:" << max_dist << " speed" <<  car_speed_ms << " nspeed:"  <<  next_speed << " max:" << max_speed << endl;
+            double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
+            cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
             
             
-            if (max_speed<car_speed_ms and target_speed>0.5) target_speed-=0.5;
-            if (max_speed>car_speed_ms and target_speed<49.5) target_speed+=0.5;
+            if (max_line_speed<car_speed and target_speed>0.5) target_speed-=0.25;
+            if (max_line_speed>car_speed and target_speed<max_speed)
+                target_speed+=0.25;
+            
+            cout <<"target_speed" << target_speed << endl;
             
             //if (max_dist<20) target_speed-=0.5;
             //if (max_dist>=20 && target_speed<49.5) target_speed+=0.5;
 
-          json msgJson;
-
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
-          int prev_size = previous_path_x.size();
-
-          double prev_car_x, prev_car_y;
-
-          vector<double> ptsx;
-          vector<double> ptsy;
-
-          double ref_x = car_x;
-          double ref_y = car_y;
-          double ref_yaw = deg2rad(car_yaw);
-
-          if (prev_size < 2)
-          {
-            prev_car_x = car_x - cos(car_yaw);
-            //if (cos(car_yaw) == 0) prev_car_x -= 0.1;
-            prev_car_y = car_y - sin(car_yaw);
-            
-
-          }
-          else
-          {
-
-            ref_x = previous_path_x[prev_size - 1];
-            ref_y = previous_path_y[prev_size - 1];
-
-            prev_car_x = previous_path_x[prev_size - 2];
-            prev_car_y = previous_path_y[prev_size - 2];
-            ref_yaw = atan2(ref_y - prev_car_y, ref_x - prev_car_x);
-            //if (prev_car_x == car_x) prev_car_x -= 0.1;
-          }
-
-          ptsx.push_back(prev_car_x);
-          ptsx.push_back(ref_x);
-
-          ptsy.push_back(prev_car_y);
-          ptsy.push_back(ref_y);
-            
-          vector<double>   last_coords=getFrenet(ref_x,
-                                  ref_y,
-                                  ref_yaw, map_waypoints_x, map_waypoints_y
-                                  );
+          
 
           for (int i = 0; i < 3; i++)
           {
@@ -335,17 +353,12 @@ int main() {
             
             
             
-          double target_x = 30;
-          double target_y = s(target_x);
-          double target_dist = distance(0, 0, target_x, target_y);
-
           double x_addon = 0;
             
           for (int i = 1; i < number_of_points - prev_size; i++)
           {
             //convert to mph and to 0.2 ??? todo
-            double N = target_dist / 0.2 / mph_to_ms(target_speed) ;
-            double x_point = x_addon + target_x / N/10;
+            double x_point = x_addon + target_speed * 0.02;
             double y_point = s(x_point);
 
             x_addon = x_point;
