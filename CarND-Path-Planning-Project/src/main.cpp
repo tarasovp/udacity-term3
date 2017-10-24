@@ -315,7 +315,7 @@ int main() {
             max_dist=cars_arround[lane][1][0];
             next_speed=cars_arround[lane][1][0];
             
-            cout << "lane:" << lane <<" around: " << cars_arround << endl;
+            cout << "lane:" << lane <<" around: " << cars_arround[lane][1][0] << endl;
             
             //if we see the next car and not in lane change
             if (max_dist<100 and target_lane==-1)
