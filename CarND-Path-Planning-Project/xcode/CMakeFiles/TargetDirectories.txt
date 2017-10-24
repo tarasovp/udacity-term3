@@ -1,0 +1,3 @@
+/Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/xcode/CMakeFiles/path_planning.dir
+/Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/xcode/CMakeFiles/ALL_BUILD.dir
+/Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/xcode/CMakeFiles/ZERO_CHECK.dir
