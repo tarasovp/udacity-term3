@@ -310,12 +310,6 @@ int main() {
             vector<double> nextvp = getXY(last_coords[0] + i * 30 + 30, (2 + 4 * lane),
                                           map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-            if (nextvp[0] < 0)
-            {
-              cout << "Fuck!" << endl;
-                
-            }
-
             ptsx.push_back(nextvp[0]);
             ptsy.push_back(nextvp[1]);
 
@@ -354,6 +348,7 @@ int main() {
             
             
           double x_addon = 0;
+          
             
           for (int i = 1; i < number_of_points - prev_size; i++)
           {
