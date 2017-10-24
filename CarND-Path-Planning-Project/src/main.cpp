@@ -14,13 +14,13 @@
 
 #define num_state 3
 
-//maximal acceleration
-#define max_acc 9.5
+//maximal acceleration, 9 m/s^2
+#define max_acc 9
 
 //number of points to calc -- 3 seconds planning
 #define number_of_points 15
 
-//max speed in m/s
+//max speed in m/s (49.2 mph)
 #define max_speed 22.0
 
 using namespace std;
@@ -28,7 +28,7 @@ using namespace std;
 // for convenience
 using json = nlohmann::json;
 int lane = 1;
-
+int target_lane=-1;
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -84,24 +84,17 @@ float get_max_speed_for_line(double dist_next, double speed_next, double speed_m
     //if 100+ meter
     if (dist_next>100 || (speed_next>speed_my && dist_next>10)) return 100;
     
-    if (dist_next>10)
+    //if car is far away
+    if (dist_next>10+speed_my/2)
     {
         float d=max(dist_next-10,0.0);
         return speed_next+sqrt(2*max_acc*d);
     }
-    else
-    {
-        return max(speed_next-1,0.0);
-    }
     
-    //for sure! distance where we have meet
-    //float d=dist_next-5;
-    //float u=speed_next-speed_my;
+    //else we have to slow down anyway
+    return speed_next*0.9;
     
-    //
-    //return d-u*u/max_acc/2 + speed_my;
     
-    //after distance tmp
     
 }
 
@@ -242,6 +235,13 @@ int main() {
             car_s = last_coords[0];
             car_d = last_coords[1];
             
+            //if lane already changed
+            if (fabs(target_lane*4+2 - car_d)<0.3)
+            {
+                lane=target_lane;
+                target_lane=-1;
+            }
+            
             
             //dist to the next car
             double max_dist=9999;
@@ -249,9 +249,9 @@ int main() {
             
             //cars arround - distance and speed
             double cars_arround[3][2][2]={
-                {{-999,0},{999,0}},
-                {{-999,0},{999,0}},
-                {{-999,0},{999,0}}};
+                {{-max_s,0},{max_s,0}},
+                {{-max_s,0},{max_s,0}},
+                {{-max_s,0},{max_s,0}}};
             
             
             for (int i=0; i < cnt_cars; i++)
@@ -260,6 +260,7 @@ int main() {
                 double next_d=sensor_fusion[i][6];
                 double vx=sensor_fusion[i][3];
                 double vy=sensor_fusion[i][4];
+                double next_car_speed=sqrt(vx*vx+vy*vy);
                 
                 //dirty approximation of car position in future
                 next_s+=next_speed*0.02*prev_size;
@@ -270,14 +271,31 @@ int main() {
                 
                 //distance from the back
                 double back_dist = dist-max_s;
-                                         
+                
+                //for each line find next and previous car
+                for (int j=0;j<3;j++)
+                {
+                    //check that car is raw in the line
+                    if (next_d>4*j-1 && next_d<4*j+5)
+                    {
+                        if (dist<cars_arround[j][1][0])
+                        {
+                            cars_arround[j][1][0]=dist;
+                            cars_arround[j][1][1]=next_car_speed;
+                        }
+                    
+                        if (back_dist>cars_arround[j][0][0])
+                        {
+                            cars_arround[j][0][0]=back_dist;
+                            cars_arround[j][0][1]=next_car_speed;
+                        }
+                        
+                    }
+                }
                 
                 if (next_d>4*lane && next_d<4*lane+4)
                 {
                     // id, x, y, vx, vy, s, d
-                    double dist=(next_s-car_s);
-                    if (dist<0) dist+=max_s;
-                    
                     if (dist<max_dist)
                     {
                         max_dist=dist;
@@ -287,10 +305,83 @@ int main() {
                     
                 }
                 
+                    
+                
+               
             }
             
             
+            //distance to the next car in current line
+            max_dist=cars_arround[lane][1][0];
+            next_speed=cars_arround[lane][1][0];
+            
+            cout << "lane:" << lane <<" around: " << cars_arround << endl;
+            
+            //if we see the next car and not in lane change
+            if (max_dist<100 and target_lane==-1)
+            {
+                int free_lines[3]={0,0,0};
+                float approx_dist_1min[3]={0,0,0};
+                
+                float safely=20+car_speed/2;
+                
+                
+                for (int i=0;i<3;i++)
+                {
+                    free_lines[i]=cars_arround[i][0][0]<-1*safely && cars_arround[i][1][0]>safely;
+                    
+                    //approximate free space in minute TODO - 1 min
+                    approx_dist_1min[i]=cars_arround[i][1][0];
+                    //+cars_arround[i][1][1]*60;
+                    
+                }
+                
+                
+                
+                if (lane==0 && free_lines[1]==1 &&
+                    approx_dist_1min[1]>approx_dist_1min[0]) target_lane=1;
+                
+                if (lane==2 && free_lines[1]==1 &&
+                    approx_dist_1min[1]>approx_dist_1min[2]) target_lane=1;
+                
+                if (lane==1)
+                {
+                    int t=-1;
+                    if (free_lines[0] && free_lines[2])
+                    {
+                        if (approx_dist_1min[0]>approx_dist_1min[2]) t=2;
+                        else t=0;
+                    }
+                    else
+                    {
+                        if (free_lines[0]) t=0;
+                        if (free_lines[2]) t=2;
+                    }
+                    
+                    
+                    if (t>-1 and approx_dist_1min[t]>approx_dist_1min[1])
+                        target_lane=t;
+                    
+                }
+                
+                
+                
+            }
+
+            
             double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
+            
+            //if target lane have to look for 2 lines
+            if (target_lane>-1)
+            {
+                max_dist=cars_arround[target_lane][1][0];
+                next_speed=cars_arround[target_lane][1][0];
+                
+                double max_line_speed2=get_max_speed_for_line(max_dist, next_speed, car_speed);
+                max_line_speed=min(max_line_speed2,max_line_speed);
+                
+            }
+            
             cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
             
             
@@ -304,10 +395,12 @@ int main() {
             //if (max_dist>=20 && target_speed<49.5) target_speed+=0.5;
 
           
+            int togo=lane;
+            if (target_lane!=-1) togo=target_lane;
 
           for (int i = 0; i < 3; i++)
           {
-            vector<double> nextvp = getXY(last_coords[0] + i * 30 + 30, (2 + 4 * lane),
+            vector<double> nextvp = getXY(last_coords[0] + i * 30 + 30, (2 + 4 * togo),
                                           map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
             ptsx.push_back(nextvp[0]);
@@ -348,12 +441,16 @@ int main() {
             
             
           double x_addon = 0;
-          
+          double current_speed=car_speed;
             
           for (int i = 1; i < number_of_points - prev_size; i++)
           {
+            if (current_speed<=target_speed) current_speed=min(current_speed+max_acc*0.02,target_speed);
+              if (current_speed>target_speed) current_speed=max(current_speed-max_acc*0.02,target_speed);
+              
+              
             //convert to mph and to 0.2 ??? todo
-            double x_point = x_addon + target_speed * 0.02;
+            double x_point = x_addon + current_speed * 0.02;
             double y_point = s(x_point);
 
             x_addon = x_point;
@@ -372,20 +469,7 @@ int main() {
 
           }
 
-          /*what we are going to do:
-           1) draw discrete map arround the car
-           2) usight A* create a plan where to go
-           3) use the strategy!
-
-
-           */
-          /* double dist_inc = 0.5;
-           for(int i = 0; i < 50; i++)
-           {
-               next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-               next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
-           }
-          */
+        
 
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           msgJson["next_x"] = next_x_vals;
