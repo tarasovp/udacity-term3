@@ -69,13 +69,6 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
 {
     int next_wp = NextWaypoint(x, y, theta, maps_x, maps_y);
     
-    //state transition for our
-    /* Eigen::Matrix2d Transition (3, 3);
-     Transition << 0, 1, 1,
-     1, 1, 0,
-     1, 0, 1;*/
-    
-    
     
     int prev_wp;
     prev_wp = next_wp - 1;

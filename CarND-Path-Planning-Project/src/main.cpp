@@ -92,14 +92,26 @@ float get_max_speed_for_line(double dist_next, double speed_next, double speed_m
     }
     
     //else we have to slow down anyway
-    return speed_next*0.9;
+    return speed_next/2;
     
     
+    
+}
+std::fstream fs;
+
+
+int ** closest_car()
+{
     
 }
 
 int main() {
   uWS::Hub h;
+    
+    
+
+fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
+
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
@@ -151,6 +163,7 @@ int main() {
       auto s = hasData(data);
 
       if (s != "") {
+        fs << s << "\n";
         auto j = json::parse(s);
 
         string event = j[0].get<string>();
@@ -180,6 +193,8 @@ int main() {
             
             int cnt_cars=sensor_fusion.size();
             json msgJson;
+            
+            ;
             
             vector<double> next_x_vals;
             vector<double> next_y_vals;
@@ -262,11 +277,19 @@ int main() {
                 double vy=sensor_fusion[i][4];
                 double next_car_speed=sqrt(vx*vx+vy*vy);
                 
+                
                 //dirty approximation of car position in future
-                next_s+=next_speed*0.02*prev_size;
+                //next_s+=next_speed*0.02*prev_size;
+                
+                if (next_s>max_s) next_s-=max_s;
                 
                 double dist=(next_s-car_s);
                 if (dist<0) dist+=max_s;
+                
+                
+                cout << "next_s=" << next_s
+                << " next_d=" << next_d
+                << " dist" << dist << endl;
                 
                 
                 //distance from the back
@@ -275,9 +298,11 @@ int main() {
                 //for each line find next and previous car
                 for (int j=0;j<3;j++)
                 {
+                    
                     //check that car is raw in the line
                     if (next_d>4*j-1 && next_d<4*j+5)
                     {
+                        cout << "yes!!!" << endl;
                         if (dist<cars_arround[j][1][0])
                         {
                             cars_arround[j][1][0]=dist;
@@ -290,9 +315,14 @@ int main() {
                             cars_arround[j][0][1]=next_car_speed;
                         }
                         
+                    
+                    
+                        cout << "j=" << j << " cars_arround[j][1][0]="
+                        << cars_arround[j][1][0] << endl;
+                        
                     }
                 }
-                
+                /*
                 if (next_d>4*lane && next_d<4*lane+4)
                 {
                     // id, x, y, vx, vy, s, d
@@ -303,7 +333,7 @@ int main() {
                         next_speed=sqrt(vx*vx+vy*vy);
                     }
                     
-                }
+                }*/
                 
                     
                 
@@ -314,8 +344,22 @@ int main() {
             //distance to the next car in current line
             max_dist=cars_arround[lane][1][0];
             next_speed=cars_arround[lane][1][0];
+            double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
             
-            cout << "lane:" << lane <<" around: " << cars_arround[lane][1][0] << endl;
+            //if target lane have to look for 2 lines
+            if (target_lane>-1)
+            {
+                max_dist=cars_arround[target_lane][1][0];
+                next_speed=cars_arround[target_lane][1][0];
+                
+                double max_line_speed2=get_max_speed_for_line(max_dist, next_speed, car_speed);
+                max_line_speed=min(max_line_speed2,max_line_speed);
+                
+            }
+            
+            cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
+            
+            //cout << "lane:" << lane <<" around: " << cars_arround[lane][1][0] << endl;
             
             //if we see the next car and not in lane change
             if (max_dist<100 and target_lane==-1)
@@ -369,20 +413,6 @@ int main() {
             }
 
             
-            double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
-            
-            //if target lane have to look for 2 lines
-            if (target_lane>-1)
-            {
-                max_dist=cars_arround[target_lane][1][0];
-                next_speed=cars_arround[target_lane][1][0];
-                
-                double max_line_speed2=get_max_speed_for_line(max_dist, next_speed, car_speed);
-                max_line_speed=min(max_line_speed2,max_line_speed);
-                
-            }
-            
-            cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
             
             
             if (max_line_speed<car_speed and target_speed>0.5) target_speed-=0.25;
@@ -521,4 +551,8 @@ int main() {
     return -1;
   }
   h.run();
+    
+    
+    fs.close();
+
 }
