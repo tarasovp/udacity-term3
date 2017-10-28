@@ -6,6 +6,7 @@ highway=pd.read_csv('../data/highway_map.csv',delimiter=' ', names=['x','y','s',
 maps_x=highway['x'].values
 maps_y=highway['y'].values
 maps_s=highway['s'].values
+max_s = 6945.554
 
 def dist(x,y):
     return ((x[0]-y[0])**2+(x[1]-y[1])**2)**(0.5)    
@@ -74,9 +75,10 @@ def deg2rad( x): return x * pi / 180
 def rad2deg( x):  return x * 180 / pi
 
 def   getXY( s,  d):
+    s=s%max_s
     prev_wp = -1
     
-    while (s > maps_s[prev_wp + 1] and (prev_wp < len(maps_s)-1 )):
+    while (prev_wp < len(maps_s)-1 ) and (s > maps_s[prev_wp + 1] ):
         prev_wp+=1
     
     wp2 = (prev_wp + 1) % len(highway)
