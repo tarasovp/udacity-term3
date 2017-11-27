@@ -76,9 +76,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     conv_1x1_3 = conv1x1(vgg_layer3_out)
 
     #upsamples + sum
-    upsample_7 = upsample(conv_1x1_7, 5, 2)
-    upsample_4 = upsample(tf.add(upsample_7, conv_1x1_4), 5, 2)
-    upsample_3 = upsample(tf.add(upsample_4, conv_1x1_3), 14, 8)
+    upsample_7 = upsample(conv_1x1_7, 4, 2)
+    upsample_4 = upsample(tf.add(upsample_7, conv_1x1_4), 4, 2)
+    upsample_3 = upsample(tf.add(upsample_4, conv_1x1_3), 16, 8)
 
     return upsample_3
 
@@ -187,7 +187,7 @@ def run():
     image_shape = (160, 576)
     data_dir = './data'
     runs_dir = './runs'
-    epochs = 3
+    epochs = 50
     batch_size = 4
     learning_rate_value = args.learning_rate
     keep_prob_value = args.keep_prob
