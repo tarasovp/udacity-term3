@@ -1,6 +1,38 @@
 # Semantic Segmentation
-### Introduction
-In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
+
+## Model validataion
+
+First of all I've splitted training dataset in two parst - train and validate. I've randomly chosed 30 images and hardcoded them as validation and helpers.py.
+
+## Augmentation
+For augmentation I used [imgaug](https://github.com/aleju/imgaug) library and added random rotation/shear/scale/crop/flipr to images, see in Main.py:
+
+```python
+seq = iaa.Sequential([
+            iaa.Affine(rotate=(-10, 10),  scale={"x": (1/1.6, 1.6), "y": (1/1.6, 1.6)},shear=(-20, 20)), #randomly rorate by 10px
+            iaa.Crop(px=(0, 10)), # crop images from each side by 0 to 16px (randomly chosen)
+            iaa.Fliplr(0.5), # horizontally flip 50% of the images
+        ])
+```
+
+Some examples, original image:
+![original image](aug_examples/original.png "Original image")
+And five augmentated iamges:
+![Augmentated image](aug_examples/aug_examples_0.png "Augmentated image")
+![Augmentated image](aug_examples/aug_examples_1.png "Augmentated image")
+![Augmentated image](aug_examples/aug_examples_2.png "Augmentated image")
+![Augmentated image](aug_examples/aug_examples_3.png "Augmentated image")
+![Augmentated image](aug_examples/aug_examples_4.png "Augmentated image")
+
+
+## Parametrs selection
+
+Finally on validation dataset I've calculated loss and iou for parametrs: learning rage 0.01 and 0.001, dropupt 0.5, 0.3 and 0.7 and using/not using augmentation. The result was:
+
+Learning rage  | Dropout 03 | Dropout 05 | Dropout 07
+------------- | ------------- | ------------- | ------------- |
+0.0010, | 0.640 | 0.601 | 0.677
+0.0100, | 0.404 | 0.366 | nan
 
 ### Setup
 ##### Frameworks and Packages
