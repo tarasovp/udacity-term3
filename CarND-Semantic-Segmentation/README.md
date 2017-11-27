@@ -47,6 +47,14 @@ Sot the best was for not using augmentation and for dropout = 0.5. It seems that
 
 But anyway, it's the best result, so I've added it. It's better to find another augmentation technic - maybe play with color change etc.
 
+In most cases it looks ok
+
+![run ok](runs/1511745953.3400893/umm_000046.png)
+
+But sometimes it makes mistakes:
+
+![run ok](/runs/1511745953.3400893/umm_000037.png)
+
 ### Setup
 ##### Frameworks and Packages
 Make sure you have the following is installed:
