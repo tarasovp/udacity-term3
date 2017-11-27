@@ -27,12 +27,25 @@ And five augmentated iamges:
 
 ## Parametrs selection
 
-Finally on validation dataset I've calculated loss and iou for parametrs: learning rage 0.01 and 0.001, dropupt 0.5, 0.3 and 0.7 and using/not using augmentation. The result was:
+Finally on validation dataset I've calculated loss and iou for parametrs: learning rage 0.01 and 0.001, dropupt 0.5, 0.3 and 0.7 and using/not using augmentation. The result was for using augmentation, iou:
 
 Learning rage  | Dropout 03 | Dropout 05 | Dropout 07
 ------------- | ------------- | ------------- | ------------- |
 0.0010, | 0.640 | 0.601 | 0.677
-0.0100, | 0.404 | 0.366 | nan
+0.0100, | 0.404 | 0.366 | (not done yet)
+
+Without augmentation, iou:
+
+Learning rage  | Dropout 03 | Dropout 05 | Dropout 07
+------------- | ------------- | ------------- | ------------- |
+0.0010, | 0.770 | 0.759 | 0.431
+0.0100, | 0.365 | 0.096 | (not done yet)
+
+Sot the best was for not using augmentation and for dropout = 0.5. It seems that model is a bit underfitted:
+
+![learning cureve](iou.png "IOU over time")
+
+But anyway, it's the best result, so I've added it. It's better to find another augmentation technic - maybe play with color change etc.
 
 ### Setup
 ##### Frameworks and Packages
