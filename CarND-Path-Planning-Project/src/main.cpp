@@ -11,6 +11,7 @@
 #include "spline.h"
 #include "geo.hpp"
 #include <algorithm>
+//#include "state.hpp"
 
 #define num_state 3
 
@@ -165,12 +166,13 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
       if (s != "") {
         fs << s << "\n";
         auto j = json::parse(s);
+    
 
         string event = j[0].get<string>();
 
         if (event == "telemetry") {
           // j[1] is the data JSON object
-
+         
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -322,18 +324,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                         
                     }
                 }
-                /*
-                if (next_d>4*lane && next_d<4*lane+4)
-                {
-                    // id, x, y, vx, vy, s, d
-                    if (dist<max_dist)
-                    {
-                        max_dist=dist;
-                        
-                        next_speed=sqrt(vx*vx+vy*vy);
-                    }
-                    
-                }*/
+            
                 
                     
                 
@@ -367,7 +358,8 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 int free_lines[3]={0,0,0};
                 float approx_dist_1min[3]={0,0,0};
                 
-                float safely=20+car_speed/2;
+                //todo - we have to calculate sefety better!
+                float safely=10+car_speed/2;
                 
                 
                 for (int i=0;i<3;i++)
