@@ -31,6 +31,10 @@ using json = nlohmann::json;
 int lane = 1;
 int target_lane=-1;
 
+std::fstream fs;
+
+
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -47,33 +51,9 @@ string hasData(string s) {
 }
 
 
-//we have to follow the line
-vector<double> follow_the_line (double s, double s1, double next_car_s, double next_car_s1)
+int current_line (float car_d)
 {
-
-  vector<double> res;
-  return res;
-
-  //if the next car if very far or moving very fast
-  /*if (next_car_s > s + 90 || next_car_s < 0 || next_car_s1 > max_speed) {
-    //
-
-  }
-*/
-  //otherwise we have to solve optimization problem,
-  //our goal is to go the same speed as the next car just behind it
-  return res;
-
-}
-
-//change line. we've to chacke that it's possible and than do it
-vector<vector<double>> change_line (double s, double s1, double d, double next_car_s, double next_car_s1,
-                                    double next_car_new_line, double next_car_new_lines1,
-double prev_car_new_line, double prev_car_new_lines1) {
-
-  vector<vector<double>>  res;
-  return res;
-
+    return round ((car_d-2)/4);
 }
 
 
@@ -95,14 +75,69 @@ float get_max_speed_for_line(double dist_next, double speed_next, double speed_m
     //else we have to slow down anyway
     return speed_next/2;
     
-    
-    
 }
-std::fstream fs;
 
 
-int ** closest_car()
+vector <float> next_car (vector<vector<float>> sensor_fusion,
+                         float car_s, float line, int forward =1)
 {
+    int cnt_cars = sensor_fusion.size();
+    float dist = 9999;
+    float ns = -1;
+    for (int j=0;j<cnt_cars; j++)
+    {
+        double next_s=sensor_fusion[j][5];
+        double next_d=sensor_fusion[j][6];
+        double vx=sensor_fusion[j][3];
+        double vy=sensor_fusion[j][4];
+        double next_car_speed=sqrt(vx*vx+vy*vy);
+        
+        //todo - when next_s > max_s ....
+        if (next_d>line*4 and next_d<line*4+4 and
+            (next_s> car_s and forward) or
+            (next_s< car_s and !forward))
+        {
+            float tmp = fabs(next_s-car_s);
+            if (tmp<dist)
+            {
+                dist = tmp;
+                ns = next_car_speed;
+            }
+        }
+        
+    }
+    return {dist, ns};
+}
+
+
+
+
+int is_line_safe (int line, float car_s, float car_v, vector<vector<float>> sensor_fusion, float time_to_calc  )
+{
+   
+    float dist = 99999;
+    
+     //for 3 seconds
+    for (int i=0; i<1;i++)
+    {
+        float s = car_s*car_v*i* 0.02;
+        for (int dir=0;dir<=1;dir++)
+        {
+            auto nc = next_car(sensor_fusion,car_s, line,dir);
+            float pos = car_s+nc[0]+nc[1]*(i+time_to_calc)* 0.02;
+            cout << "line=" << line << " dir = " << dir <<
+            " pos=" << pos << " car_s=" << car_s << endl;
+            
+            
+            if (abs(pos-s)<dist) dist = abs(pos-car_s);
+        }
+    }
+    
+    //cout << "is_line_safe " << line << " " << dist << endl;
+    
+    if (dist < 5) return 0;
+    return 1;
+    
     
 }
 
@@ -193,6 +228,8 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
             
+            
+            
             int cnt_cars=sensor_fusion.size();
             json msgJson;
             
@@ -279,6 +316,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 double vy=sensor_fusion[i][4];
                 double next_car_speed=sqrt(vx*vx+vy*vy);
                 
+                cout << "car "<<next_s<<" " <<next_d<< endl;
                 
                 //dirty approximation of car position in future
                 //next_s+=next_speed*0.02*prev_size;
@@ -289,10 +327,10 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 if (dist<0) dist+=max_s;
                 
                 
-                cout << "next_s=" << next_s
+                /*cout << "next_s=" << next_s
                 << " next_d=" << next_d
                 << " dist" << dist << endl;
-                
+                */
                 
                 //distance from the back
                 double back_dist = dist-max_s;
@@ -304,7 +342,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                     //check that car is raw in the line
                     if (next_d>4*j-1 && next_d<4*j+5)
                     {
-                        cout << "yes!!!" << endl;
+                        //cout << "yes!!!" << endl;
                         if (dist<cars_arround[j][1][0])
                         {
                             cars_arround[j][1][0]=dist;
@@ -319,8 +357,8 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                         
                     
                     
-                        cout << "j=" << j << " cars_arround[j][1][0]="
-                        << cars_arround[j][1][0] << endl;
+                        //cout << "j=" << j << " cars_arround[j][1][0]="
+                        //<< cars_arround[j][1][0] << endl;
                         
                     }
                 }
@@ -333,7 +371,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             
             
             //distance to the next car in current line
-            max_dist=cars_arround[lane][1][0];
+            /*max_dist=cars_arround[lane][1][0];
             next_speed=cars_arround[lane][1][0];
             double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
             
@@ -349,20 +387,24 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             }
             
             cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
+            */
+            
+            auto nc  =next_car(sensor_fusion, end_path_s, lane);
+            float max_line_speed = get_max_speed_for_line(nc[0],nc[1],car_speed);
             
             //cout << "lane:" << lane <<" around: " << cars_arround[lane][1][0] << endl;
             
             //if we see the next car and not in lane change
-            if (max_dist<100 and target_lane==-1)
+            if (nc[0]<100 and target_lane==-1)
             {
                 int free_lines[3]={0,0,0};
                 float approx_dist_1min[3]={0,0,0};
                 
                 //todo - we have to calculate sefety better!
-                float safely=10+car_speed/2;
+                //float safely=10+car_speed/2;
                 
                 
-                for (int i=0;i<3;i++)
+                /*for (int i=0;i<3;i++)
                 {
                     free_lines[i]=cars_arround[i][0][0]<-1*safely && cars_arround[i][1][0]>safely;
                     
@@ -370,35 +412,41 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                     approx_dist_1min[i]=cars_arround[i][1][0];
                     //+cars_arround[i][1][1]*60;
                     
-                }
+                }*/
                 
+                float best=lane;
+                float best_dist=0;
                 
-                
-                if (lane==0 && free_lines[1]==1 &&
-                    approx_dist_1min[1]>approx_dist_1min[0]) target_lane=1;
-                
-                if (lane==2 && free_lines[1]==1 &&
-                    approx_dist_1min[1]>approx_dist_1min[2]) target_lane=1;
-                
-                if (lane==1)
+                for (int i=0;i<3;i++)
                 {
-                    int t=-1;
-                    if (free_lines[0] && free_lines[2])
-                    {
-                        if (approx_dist_1min[0]>approx_dist_1min[2]) t=2;
-                        else t=0;
-                    }
-                    else
-                    {
-                        if (free_lines[0]) t=0;
-                        if (free_lines[2]) t=2;
-                    }
+                    free_lines[i]=is_line_safe(i, end_path_s, car_speed, sensor_fusion, previous_path_x.size());
                     
+                    auto tmp =next_car(sensor_fusion, end_path_s, i);
+                    approx_dist_1min[i]=tmp[0];
                     
-                    if (t>-1 and approx_dist_1min[t]>approx_dist_1min[1])
-                        target_lane=t;
+                    if (tmp[0]>best_dist) {
+                       best=i;
+                        best_dist=tmp[0];
+                    }
                     
                 }
+                
+                if (best>lane and free_lines[lane+1]==1)
+                    target_lane=lane+1;
+                
+                if (best<lane and free_lines[lane-1]==1)
+                    target_lane=lane-1;
+                
+                if (target_lane!=-1) cout << "change line " << target_lane << endl;
+                
+                cout << "free:" << free_lines[0] << " " <<
+                                free_lines[1] << " " <<
+                free_lines[2] << endl;
+                
+                cout << "aprox:" << approx_dist_1min[0] << " " <<
+                approx_dist_1min[1] << " " <<
+                approx_dist_1min[2] << endl;
+
                 
                 
                 
@@ -411,7 +459,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             if (max_line_speed>car_speed and target_speed<max_speed)
                 target_speed+=0.25;
             
-            cout <<"target_speed" << target_speed << endl;
+            //cout <<"target_speed" << target_speed << endl;
             
             //if (max_dist<20) target_speed-=0.5;
             //if (max_dist>=20 && target_speed<49.5) target_speed+=0.5;
@@ -438,13 +486,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             double shifty = ptsy[i] - ref_y;
             ptsx[i] = (shiftx * cos(0 - ref_yaw)) - shifty * sin(0 - ref_yaw);
             ptsy[i] = (shiftx * sin(0 - ref_yaw)) + shifty * cos(0 - ref_yaw);
-            //cout <<                ptsx[i] << endl;
 
-            if (ptsx[i] < 0 && i > 0)
-            {
-              cout << 'fuck!' << endl;
-
-            }
           }
 
 
@@ -471,7 +513,7 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
               if (current_speed>target_speed) current_speed=max(current_speed-max_acc*0.02,target_speed);
               
               
-            //convert to mph and to 0.2 ??? todo
+            //convert to mph
             double x_point = x_addon + current_speed * 0.02;
             double y_point = s(x_point);
 
