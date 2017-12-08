@@ -19,7 +19,7 @@
 #define max_acc 9
 
 //number of points to calc -- 3 seconds planning
-#define number_of_points 15
+#define number_of_points 50
 
 //max speed in m/s (49.2 mph)
 #define max_speed 22.0
@@ -79,7 +79,7 @@ float get_max_speed_for_line(double dist_next, double speed_next, double speed_m
 
 
 vector <float> next_car (vector<vector<float>> sensor_fusion,
-                         float car_s, float line, int forward =1)
+                         float car_s, float line, int time_to_calc, int forward =1 )
 {
     int cnt_cars = sensor_fusion.size();
     float dist = 9999;
@@ -92,10 +92,12 @@ vector <float> next_car (vector<vector<float>> sensor_fusion,
         double vy=sensor_fusion[j][4];
         double next_car_speed=sqrt(vx*vx+vy*vy);
         
+        next_s += next_car_speed * time_to_calc * 0.02;
+        
         //todo - when next_s > max_s ....
-        if (next_d>line*4 and next_d<line*4+4 and
-            (next_s> car_s and forward) or
-            (next_s< car_s and !forward))
+        if ((next_d>line*4) && (next_d<line*4+4) &&
+             ((next_s> car_s && forward) ||
+            (next_s< car_s && !forward)))
         {
             float tmp = fabs(next_s-car_s);
             if (tmp<dist)
@@ -106,36 +108,42 @@ vector <float> next_car (vector<vector<float>> sensor_fusion,
         }
         
     }
+
     return {dist, ns};
 }
 
 
 
 
-int is_line_safe (int line, float car_s, float car_v, vector<vector<float>> sensor_fusion, float time_to_calc  )
+double is_line_safe (int line, float car_s, float car_v, vector<vector<float>> sensor_fusion, float time_to_calc  )
 {
    
     float dist = 99999;
     
      //for 3 seconds
-    for (int i=0; i<1;i++)
+    for (int time=0; time<15;time+=1)
     {
-        float s = car_s*car_v*i* 0.02;
+        float s = car_s+car_v*time* 0.02;
         for (int dir=0;dir<=1;dir++)
         {
-            auto nc = next_car(sensor_fusion,car_s, line,dir);
-            float pos = car_s+nc[0]+nc[1]*(i+time_to_calc)* 0.02;
-            cout << "line=" << line << " dir = " << dir <<
-            " pos=" << pos << " car_s=" << car_s << endl;
+            auto nc = next_car(sensor_fusion,car_s, line,time_to_calc, dir);
+            float pos = car_s+nc[0]+nc[1]*(time+time_to_calc)* 0.02;
+            
+            float tmp_dist =abs(pos-s);
+            if (abs(pos-s)<dist) dist = abs(pos-s);
+            
+            //cout << "line=" << line << " dir = " << dir <<
+            //" pos=" << pos << " car_s=" << car_s << " tmp_dist:" <<  tmp_dist << "dist:" << dist <<  endl;
             
             
-            if (abs(pos-s)<dist) dist = abs(pos-car_s);
+           
         }
+        
     }
     
-    //cout << "is_line_safe " << line << " " << dist << endl;
+    //cout << "line: "<< line << " dist " << dist << endl;
     
-    if (dist < 5) return 0;
+    if (dist < 30) return 0;
     return 1;
     
     
@@ -143,10 +151,53 @@ int is_line_safe (int line, float car_s, float car_v, vector<vector<float>> sens
 
 int main() {
   uWS::Hub h;
+    /*
+    string l;
+    ifstream myfile ("log.txt");
+    fs.open ("out.txt", std::fstream::in | std::fstream::out | std::fstream::app);
     
     
-
-fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
+    while ( getline (myfile,l) )
+    {
+        try{
+        auto j = json::parse(l);
+        double car_x = j[1]["x"];
+        double car_y = j[1]["y"];
+        double car_s = j[1]["s"];
+        double car_d = j[1]["d"];
+        double car_yaw = j[1]["yaw"];
+        double car_speed = mph_to_ms(j[1]["speed"]);
+        
+        //double car_speed_ms = mph_to_ms(car_speed);
+        
+        // Previous path data given to the Planner
+        auto previous_path_x = j[1]["previous_path_x"];
+        auto previous_path_y = j[1]["previous_path_y"];
+        // Previous path's end s and d values
+        double end_path_s = j[1]["end_path_s"];
+        double end_path_d = j[1]["end_path_d"];
+        
+        // Sensor Fusion Data, a list of all other cars on the same side of the road.
+        auto sensor_fusion = j[1]["sensor_fusion"];
+        
+        //fs << l << endl;
+        fs << is_line_safe(0, car_s, car_speed, sensor_fusion,0  ) << " ";
+        fs << is_line_safe(1, car_s, car_speed, sensor_fusion,0  ) << " ";
+        fs << is_line_safe(2, car_s, car_speed, sensor_fusion,0  ) << " ";
+        fs << endl;
+        }
+        catch(const exception e){
+            cout <<"exception!" << endl;
+            
+        }
+        
+    }
+    myfile.close();
+    cout <<"ok!" << endl;
+    return 0;
+  
+    */
+  fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
 
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
@@ -249,6 +300,11 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             double ref_y = car_y;
             double ref_yaw = deg2rad(car_yaw);
             
+            //cout << "aaaa" << endl;
+            cout <<is_line_safe(0, car_s, car_speed, sensor_fusion,previous_path_x.size()  ) << " "
+            << is_line_safe(1, car_s, car_speed, sensor_fusion,previous_path_x.size()  ) << " " <<
+             is_line_safe(2, car_s, car_speed, sensor_fusion,previous_path_x.size()  ) << endl;
+            
             if (prev_size < 2)
             {
                 prev_car_x = car_x - cos(car_yaw);
@@ -297,99 +353,9 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             }
             
             
-            //dist to the next car
-            double max_dist=9999;
-            double next_speed=9999;
+           
             
-            //cars arround - distance and speed
-            double cars_arround[3][2][2]={
-                {{-max_s,0},{max_s,0}},
-                {{-max_s,0},{max_s,0}},
-                {{-max_s,0},{max_s,0}}};
-            
-            
-            for (int i=0; i < cnt_cars; i++)
-            {
-                double next_s=sensor_fusion[i][5];
-                double next_d=sensor_fusion[i][6];
-                double vx=sensor_fusion[i][3];
-                double vy=sensor_fusion[i][4];
-                double next_car_speed=sqrt(vx*vx+vy*vy);
-                
-                cout << "car "<<next_s<<" " <<next_d<< endl;
-                
-                //dirty approximation of car position in future
-                //next_s+=next_speed*0.02*prev_size;
-                
-                if (next_s>max_s) next_s-=max_s;
-                
-                double dist=(next_s-car_s);
-                if (dist<0) dist+=max_s;
-                
-                
-                /*cout << "next_s=" << next_s
-                << " next_d=" << next_d
-                << " dist" << dist << endl;
-                */
-                
-                //distance from the back
-                double back_dist = dist-max_s;
-                
-                //for each line find next and previous car
-                for (int j=0;j<3;j++)
-                {
-                    
-                    //check that car is raw in the line
-                    if (next_d>4*j-1 && next_d<4*j+5)
-                    {
-                        //cout << "yes!!!" << endl;
-                        if (dist<cars_arround[j][1][0])
-                        {
-                            cars_arround[j][1][0]=dist;
-                            cars_arround[j][1][1]=next_car_speed;
-                        }
-                    
-                        if (back_dist>cars_arround[j][0][0])
-                        {
-                            cars_arround[j][0][0]=back_dist;
-                            cars_arround[j][0][1]=next_car_speed;
-                        }
-                        
-                    
-                    
-                        //cout << "j=" << j << " cars_arround[j][1][0]="
-                        //<< cars_arround[j][1][0] << endl;
-                        
-                    }
-                }
-            
-                
-                    
-                
-               
-            }
-            
-            
-            //distance to the next car in current line
-            /*max_dist=cars_arround[lane][1][0];
-            next_speed=cars_arround[lane][1][0];
-            double max_line_speed=get_max_speed_for_line(max_dist, next_speed, car_speed);
-            
-            //if target lane have to look for 2 lines
-            if (target_lane>-1)
-            {
-                max_dist=cars_arround[target_lane][1][0];
-                next_speed=cars_arround[target_lane][1][0];
-                
-                double max_line_speed2=get_max_speed_for_line(max_dist, next_speed, car_speed);
-                max_line_speed=min(max_line_speed2,max_line_speed);
-                
-            }
-            
-            cout << "dist:" << max_dist << " speed" <<  car_speed << " nspeed:"  <<  next_speed << " max:" << max_line_speed << endl;
-            */
-            
-            auto nc  =next_car(sensor_fusion, end_path_s, lane);
+            auto nc  =next_car(sensor_fusion, end_path_s, lane, previous_path_x.size());
             float max_line_speed = get_max_speed_for_line(nc[0],nc[1],car_speed);
             
             //cout << "lane:" << lane <<" around: " << cars_arround[lane][1][0] << endl;
@@ -400,19 +366,6 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 int free_lines[3]={0,0,0};
                 float approx_dist_1min[3]={0,0,0};
                 
-                //todo - we have to calculate sefety better!
-                //float safely=10+car_speed/2;
-                
-                
-                /*for (int i=0;i<3;i++)
-                {
-                    free_lines[i]=cars_arround[i][0][0]<-1*safely && cars_arround[i][1][0]>safely;
-                    
-                    //approximate free space in minute TODO - 1 min
-                    approx_dist_1min[i]=cars_arround[i][1][0];
-                    //+cars_arround[i][1][1]*60;
-                    
-                }*/
                 
                 float best=lane;
                 float best_dist=0;
@@ -421,12 +374,12 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 {
                     free_lines[i]=is_line_safe(i, end_path_s, car_speed, sensor_fusion, previous_path_x.size());
                     
-                    auto tmp =next_car(sensor_fusion, end_path_s, i);
+                    auto tmp =next_car(sensor_fusion, end_path_s, i,previous_path_x.size() );
                     approx_dist_1min[i]=tmp[0];
                     
-                    if (tmp[0]>best_dist) {
+                    if (tmp[0]>best_dist and free_lines[i]) {
                        best=i;
-                        best_dist=tmp[0];
+                       best_dist=tmp[0];
                     }
                     
                 }
@@ -439,13 +392,13 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
                 
                 if (target_lane!=-1) cout << "change line " << target_lane << endl;
                 
-                cout << "free:" << free_lines[0] << " " <<
-                                free_lines[1] << " " <<
-                free_lines[2] << endl;
+                //cout << "free:" << free_lines[0] << " " <<
+                //                free_lines[1] << " " <<
+               // free_lines[2] << endl;
                 
-                cout << "aprox:" << approx_dist_1min[0] << " " <<
-                approx_dist_1min[1] << " " <<
-                approx_dist_1min[2] << endl;
+                //cout << "aprox:" << approx_dist_1min[0] << " " <<
+               // approx_dist_1min[1] << " " <<
+                //approx_dist_1min[2] << endl;
 
                 
                 
@@ -459,14 +412,9 @@ fs.open ("log.txt", std::fstream::in | std::fstream::out | std::fstream::app);
             if (max_line_speed>car_speed and target_speed<max_speed)
                 target_speed+=0.25;
             
-            //cout <<"target_speed" << target_speed << endl;
             
-            //if (max_dist<20) target_speed-=0.5;
-            //if (max_dist>=20 && target_speed<49.5) target_speed+=0.5;
-
-          
-            int togo=lane;
-            if (target_lane!=-1) togo=target_lane;
+          int togo=lane;
+          if (target_lane!=-1) togo=target_lane;
 
           for (int i = 0; i < 3; i++)
           {
