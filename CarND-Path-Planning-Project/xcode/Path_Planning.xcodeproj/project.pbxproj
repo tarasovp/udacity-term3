@@ -35,6 +35,7 @@
 
 /* Begin PBXBuildFile section */
 		5089B7D91F9FA46D00650DE3 /* geo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5089B7D71F9FA46D00650DE3 /* geo.cpp */; };
+		50D1BE1C1FDC186400A8ED4F /* base_safety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 50D1BE1A1FDC186400A8ED4F /* base_safety.cpp */; };
 		704178F5793A4EEBA1D53760 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3828E45268F04B5BAF3B17A0 /* main.cpp */; };
 /* End PBXBuildFile section */
 
@@ -67,6 +68,8 @@
 		456EA79DC3D14279A5D815D4 /* path_planning */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = path_planning; sourceTree = BUILT_PRODUCTS_DIR; };
 		5089B7D71F9FA46D00650DE3 /* geo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = geo.cpp; path = src/geo.cpp; sourceTree = "<group>"; };
 		5089B7D81F9FA46D00650DE3 /* geo.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = geo.hpp; path = src/geo.hpp; sourceTree = "<group>"; };
+		50D1BE1A1FDC186400A8ED4F /* base_safety.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = base_safety.cpp; path = src/base_safety.cpp; sourceTree = "<group>"; };
+		50D1BE1B1FDC186400A8ED4F /* base_safety.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = base_safety.hpp; path = src/base_safety.hpp; sourceTree = "<group>"; };
 		931897A615874684A8EAA358 /* CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
 		B9771DD72A6B43A49293FF27 /* CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
 		F6256C8A5707483789ACD7E1 /* CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
@@ -129,6 +132,8 @@
 				3828E45268F04B5BAF3B17A0 /* main.cpp */,
 				5089B7D71F9FA46D00650DE3 /* geo.cpp */,
 				5089B7D81F9FA46D00650DE3 /* geo.hpp */,
+				50D1BE1A1FDC186400A8ED4F /* base_safety.cpp */,
+				50D1BE1B1FDC186400A8ED4F /* base_safety.hpp */,
 			);
 			name = "Source Files";
 			sourceTree = "<group>";
@@ -219,6 +224,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				704178F5793A4EEBA1D53760 /* main.cpp in Sources */,
+				50D1BE1C1FDC186400A8ED4F /* base_safety.cpp in Sources */,
 				5089B7D91F9FA46D00650DE3 /* geo.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
