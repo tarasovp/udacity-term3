@@ -177,4 +177,5 @@ dependencies: \
   /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/src/QR/CompleteOrthogonalDecomposition.h \
   /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/json.hpp \
   /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/spline.h \
-  /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/geo.hpp
+  /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/geo.hpp \
+  /Users/p.tarasov/notebooks/udacity-term3/CarND-Path-Planning-Project/src/base_safety.hpp
